@@ -17,6 +17,10 @@ const fetchData = async (searchTerm) => {
 		}
 	});
 
+	if (response.data.Error) {
+		return [];
+	}
+
 	return response.data.Search;
 };
 
@@ -28,7 +32,7 @@ OnInput
 
 This function calls fetchData after a user inputs a string to search the imdb api.
 We use the debounce function to limit how often fetchData will be invoked. We append the search
-results to 
+results to
 
 params:
 	event: The event object created when the user types into the search bar.
