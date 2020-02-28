@@ -1,15 +1,3 @@
-/* 
-fetchData
-
-This function returns an array of movie objects based on a searchTerm passed in 
-by the user. We use the axios library to send an request to the omdb api. 
-
-params:
-	searchTerm: The string we will use to send our request to the omdb api
-
-return: returns an array of movie objects
-*/
-
 const autoCompleteConfig = {
 	renderOption(movie) {
 		const imgSrc = movie.Poster === 'N/A' ? '' : movie.Poster;
@@ -31,6 +19,7 @@ const autoCompleteConfig = {
 		if (response.data.Error) {
 			return [];
 		}
+		console.log(response);
 		return response.data.Search;
 	}
 };
@@ -155,3 +144,15 @@ const movieTemplate = (movieDetail) => {
 		</article>
 	`;
 };
+
+/* 
+fetchData
+
+This function returns an array of movie objects based on a searchTerm passed in 
+by the user. We use the axios library to send an request to the omdb api. 
+
+params:
+	searchTerm: The string we will use to send our request to the omdb api
+
+return: returns an array of movie objects
+*/
