@@ -9,82 +9,120 @@ params:
 
 return: returns an array of movie objects
 */
-const fetchData = async (searchTerm) => {
+
+const autoCompleteConfig = {
+	renderOption(movie) {
+		const imgSrc = movie.Poster === 'N/A' ? '' : movie.Poster;
+		return `
+		<img src="${imgSrc}" />
+		${movie.Title} (${movie.Year})
+		`;
+	},
+	inputValue(movie) {
+		return movie.Title;
+	},
+	async fetchData(searchTerm) {
+		const response = await axios.get('http://www.omdbapi.com/', {
+			params : {
+				apikey : '6eddeff',
+				s      : searchTerm
+			}
+		});
+		if (response.data.Error) {
+			return [];
+		}
+		return response.data.Search;
+	}
+};
+
+createAutoComplete({
+	...autoCompleteConfig,
+	root           : document.querySelector('#left-autocomplete'),
+	onOptionSelect(movie) {
+		document.querySelector('.tutorial').classList.add('is-hidden');
+		onMovieSelect(movie, document.querySelector('#left-summary'), 'left');
+	}
+});
+
+createAutoComplete({
+	...autoCompleteConfig,
+	root           : document.querySelector('#right-autocomplete'),
+	onOptionSelect(movie) {
+		document.querySelector('.tutorial').classList.add('is-hidden');
+		onMovieSelect(movie, document.querySelector('#right-summary'), 'right');
+	}
+});
+
+let leftMovie;
+let rightMovie;
+
+// Make request for the specific movie selected for expanded statistics.
+const onMovieSelect = async (movie, summaryElement, side) => {
 	const response = await axios.get('http://www.omdbapi.com/', {
 		params : {
 			apikey : '6eddeff',
-			s      : searchTerm
+			i      : movie.imdbID
 		}
 	});
 
-	if (response.data.Error) {
-		return [];
+	// We append the data returned from the request to the page using the movieTemplate Function
+	summaryElement.innerHTML = movieTemplate(response.data);
+
+	if (side === 'left') {
+		leftMovie = response.data;
+	} else {
+		rightMovie = response.data;
 	}
 
-	return response.data.Search;
+	if (leftMovie && rightMovie) {
+		runComparison();
+	}
 };
 
-const root = document.querySelector('.autocomplete');
+const runComparison = () => {
+	console.log('Time to compare');
+};
 
-root.innerHTML = `
-	<label><b>Search For a Move</b></label>
-	<input class = "input" />
-	<div class="dropdown">
-		<div class= "dropdown-menu">
-			<div class = "dropdown-content results"></div>
-		</div>
-	</div>
-`;
+const movieTemplate = (movieDetail) => {
+	const dollars = parseInt(
+		movieDetail.BoxOffice.replace(/\$/g, '').replace(/,/g, '')
+	);
+	console.log(dollars);
 
-// Select the input text field
-const input = document.querySelector('input');
-const dropdown = document.querySelector('.dropdown');
-const resultsWrapper = document.querySelector('.results');
-
-/* 
-OnInput
-
-This function calls fetchData after a user inputs a string to search the imdb api.
-We use the debounce function to limit how often fetchData will be invoked. We append the search
-results to
-
-params:
-	event: The event object created when the user types into the search bar.
-
-*/
-const onInput = debounce(async (event) => {
-	const movies = await fetchData(event.target.value);
-
-	if (!movies.length) {
-		dropdown.classList.remove('is-active');
-		return;
-	}
-
-	resultsWrapper.innerHTML = '';
-	dropdown.classList.add('is-active');
-	for (let movie of movies) {
-		const option = document.createElement('a');
-		const imgSrc = movie.Poster === 'N/A' ? '' : movie.Poster;
-
-		option.classList.add('dropdown-item');
-		option.innerHTML = `
-			<img src="${imgSrc}" />
-			${movie.Title}
-		`;
-
-		option.addEventListener('click', () => {
-			dropdown.classList.remove('is-active');
-			input.value = movie.Title;
-		});
-		resultsWrapper.appendChild(option);
-	}
-}, 500);
-
-//The search bar will call onInput with each keystroke
-input.addEventListener('input', onInput);
-
-document.addEventListener('click', (event) => {
-	if (!root.contains(event.target)) {
-		dropdown.classList.remove('is-active');
-	}
-});
+	return `
+		<article class= "media">
+			<figure class = "media-left">
+				<p class = "image">
+					<img src="${movieDetail.Poster}" />
+				</p>
+			</figure>
+			<div class="media-content">
+				<div class="content">
+					<h1>${movieDetail.Title}</h1>
+					<h4>${movieDetail.Genre}</h4>
+					<p>${movieDetail.Plot}</p>
+				</div>
+			</div>
+		</article>
+		<article class="notification is-primary">
+			<p class="title">${movieDetail.Awards}</p>
+			<p class="subtitle">Awards</p>
+		</article>
+		<article class="notification is-primary">
+			<p class="title">${movieDetail.BoxOffice}</p>
+			<p class="subtitle">Box Office</p>
+		</article>
+		<article class="notification is-primary">
+			<p class="title">${movieDetail.Metascore}</p>
+			<p class="subtitle">Metascore</p>
+		</article>
+		<article class="notification is-primary">
+			<p class="title">${movieDetail.imdbRating}</p>
+			<p class="subtitle">IMDB Rating</p>
+		</article>
+		<article class="notification is-primary">
+			<p class="title">${movieDetail.imdbVotes}</p>
+			<p class="subtitle">IMDB Votes</p>
+		</article>
+	`;
+};
